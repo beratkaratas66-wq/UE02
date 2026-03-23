@@ -15,7 +15,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /recipe-api main.go
 
 # --- Stage 2: Final Runtime ---
 # Distroless für minimale Angriffsfläche (keine Shell, keine Tools)
-FROM gcr.io/distroless/static-debian12:latest
+FROM gcr.io/distroless/static-debian12:nonroot
 
 # Als Non-Root User ausführen (Sicherheits-Best-Practice)
 USER 65532:65532
