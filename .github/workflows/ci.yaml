@@ -84,7 +84,7 @@ jobs:
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # (Bleibt gepinnt)
 
       - name: Build local image for scanning
-        uses: docker/build-push-action@v6 # <--- Hier ist die ERSTE v6
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # <--- Hier ist die ERSTE v6
         with:
           context: .
           load: true
