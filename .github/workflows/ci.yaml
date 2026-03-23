@@ -70,40 +70,39 @@ jobs:
     name: Build, Scan & Push
     runs-on: ubuntu-24.04
     needs: integration-test
-    # Job-spezifische Rechte: Nur hier wird Schreibzugriff benötigt
     permissions:
       contents: read
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # (Bleibt gepinnt)
 
       - name: Set up QEMU (for multi-arch)
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # (Bleibt gepinnt)
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # (Bleibt gepinnt)
 
       - name: Build local image for scanning
-        uses: docker/build-push-action@v6 
+        uses: docker/build-push-action@v6 # <--- Hier ist die ERSTE v6
         with:
           context: .
           load: true
           tags: ${{ env.IMAGE_NAME }}:test-scan
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master # v0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ env.IMAGE_NAME }}:test-scan'
           format: 'table'
-          exit-code: '1' # Hardening: Pipeline bricht bei HIGH/CRITICAL ab (Teil B.3)
+          exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
       - name: Log in to the Container registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3 # v3.3.0
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -111,7 +110,7 @@ jobs:
 
       - name: Extract Docker metadata (Tags with Commit SHA)
         id: meta
-        uses: docker/metadata-action@v5 # v5.5.1
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -119,11 +118,11 @@ jobs:
 
       - name: Build and push multi-arch image
         if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6dea2738ad5fdc63 # v6.9.0
+        uses: docker/build-push-action@v6 # <--- Hier fehlte die ZWEITE v6!
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          sbom: true # Hardening: Automatische SBOM-Generierung (Teil B.3)
+          sbom: true
