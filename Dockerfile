@@ -10,7 +10,7 @@ RUN go mod download
 # Den restlichen Quellcode aus src kopieren
 COPY src/ .
 
-# Statisch gelinktes Binary bauen (wichtig für distroless)
+# Statisch gelinktes Binary bauen 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /recipe-api main.go
 
 # --- Stage 2: Final Runtime ---

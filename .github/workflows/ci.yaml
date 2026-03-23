@@ -33,7 +33,7 @@ jobs:
           go-version: '1.24' # Exakt auf dein Dockerfile abgestimmt
 
       - name: Lint Go Code
-        uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e0f0ea # v6.1.1
+        uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042462 # v6.1.1
         with:
           working-directory: src/ # Wichtig, da dein Go-Code im src-Ordner liegt
 
