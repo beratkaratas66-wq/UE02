@@ -1,0 +1,128 @@
+name: CI/CD Pipeline - Go Recipe API
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Part B.3 Hardening: Least-Privilege auf Workflow-Ebene
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/recipe-api
+
+jobs:
+  lint:
+    name: Lint Code & Dockerfile
+    runs-on: ubuntu-24.04 # Part B.3 Hardening: Pinned Runner
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+      - name: Setup Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: '1.22' # Passe dies an deine Go-Version an
+
+      - name: Lint Go Code
+        uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e0f0ea # v6.1.1
+        with:
+          working-directory: src/
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-24.04
+    needs: lint
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+
+      - name: Start Database and API
+        run: docker compose up -d
+
+      - name: Wait for API to be healthy
+        # Wir warten kurz, bis die DB und die Go-App bereit sind.
+        run: |
+          echo "Waiting for services..."
+          sleep 15
+          docker compose ps
+
+      - name: Run API Tests
+        # Ein simpler Health-Check per curl. Wenn deine API Tests in Go geschrieben sind, 
+        # kannst du hier stattdessen `cd src && go test ./...` ausführen.
+        run: |
+          curl --fail http://localhost:8080/health || exit 1
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v
+
+  build-scan-push:
+    name: Build, Scan & Push
+    runs-on: ubuntu-24.04
+    needs: integration-test
+    # Spezifische Berechtigungen für den Push in die Registry
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+
+      - name: Set up QEMU (for multi-arch)
+        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+
+      - name: Build local image for scanning
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6dea2738ad5fdc63 # v6.9.0
+        with:
+          context: .
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:test-scan
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5c67 # v0.28.0
+        with:
+          image-ref: '${{ env.IMAGE_NAME }}:test-scan'
+          format: 'table'
+          exit-code: '1' # Part B.3 Hardening: Bricht Pipeline bei Funden ab
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Log in to the Container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata (Tags with Commit SHA)
+        id: meta
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+
+      - name: Build and push multi-arch image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6dea2738ad5fdc63 # v6.9.0
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          sbom: true # Part B.3 Hardening: SBOM Generation
