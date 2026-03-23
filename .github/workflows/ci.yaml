@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# Part B.3 Hardening: Least-Privilege auf Workflow-Ebene
+# Hardening: Least-Privilege auf Workflow-Ebene (Teil B.3)
 permissions:
   contents: read
 
@@ -17,10 +17,10 @@ env:
 jobs:
   lint:
     name: Lint Code & Dockerfile
-    runs-on: ubuntu-24.04 # Part B.3 Hardening: Pinned Runner
+    runs-on: ubuntu-24.04 # Hardening: Pinned Runner (Teil B.3)
     steps:
       - name: Checkout repository
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1 (SHA gepinnt)
 
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
@@ -30,12 +30,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
-          go-version: '1.22' # Passe dies an deine Go-Version an
+          go-version: '1.24' # Exakt auf dein Dockerfile abgestimmt
 
       - name: Lint Go Code
         uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e0f0ea # v6.1.1
         with:
-          working-directory: src/
+          working-directory: src/ # Wichtig, da dein Go-Code im src-Ordner liegt
 
   integration-test:
     name: Integration Tests
@@ -46,20 +46,19 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
 
       - name: Start Database and API
+        # Startet deine docker-compose.yaml aus Übung 1
         run: docker compose up -d
 
-      - name: Wait for API to be healthy
-        # Wir warten kurz, bis die DB und die Go-App bereit sind.
+      - name: Wait for API to be ready
         run: |
-          echo "Waiting for services..."
+          echo "Warte auf Datenbank und API..."
           sleep 15
           docker compose ps
 
       - name: Run API Tests
-        # Ein simpler Health-Check per curl. Wenn deine API Tests in Go geschrieben sind, 
-        # kannst du hier stattdessen `cd src && go test ./...` ausführen.
+        # Testet, ob der Container erreichbar ist (Passe den Pfad ggf. an deine Go-App an)
         run: |
-          curl --fail http://localhost:8080/health || exit 1
+          curl --fail http://localhost:8080/ || exit 1
 
       - name: Teardown
         if: always()
@@ -69,7 +68,7 @@ jobs:
     name: Build, Scan & Push
     runs-on: ubuntu-24.04
     needs: integration-test
-    # Spezifische Berechtigungen für den Push in die Registry
+    # Job-spezifische Rechte: Nur hier wird Schreibzugriff benötigt
     permissions:
       contents: read
       packages: write
@@ -95,7 +94,7 @@ jobs:
         with:
           image-ref: '${{ env.IMAGE_NAME }}:test-scan'
           format: 'table'
-          exit-code: '1' # Part B.3 Hardening: Bricht Pipeline bei Funden ab
+          exit-code: '1' # Hardening: Pipeline bricht bei HIGH/CRITICAL ab (Teil B.3)
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
@@ -125,4 +124,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          sbom: true # Part B.3 Hardening: SBOM Generation
+          sbom: true # Hardening: Automatische SBOM-Generierung (Teil B.3)
