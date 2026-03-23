@@ -92,7 +92,7 @@ jobs:
           tags: ${{ env.IMAGE_NAME }}:test-scan
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5c67 # v0.28.0
+        uses: aquasecurity/trivy-action@master # v0.28.0
         with:
           image-ref: '${{ env.IMAGE_NAME }}:test-scan'
           format: 'table'
@@ -103,7 +103,7 @@ jobs:
 
       - name: Log in to the Container registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@v3 # v3.3.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -111,7 +111,7 @@ jobs:
 
       - name: Extract Docker metadata (Tags with Commit SHA)
         id: meta
-        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
+        uses: docker/metadata-action@v5 # v5.5.1
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
