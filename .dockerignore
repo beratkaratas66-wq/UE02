@@ -1,0 +1,19 @@
+# Git-Historie nicht mitkopieren
+.git
+.github
+
+# Dokumentation und Markdown weglassen
+README.md
+*.md
+
+# Lokale Binaries weglassen (wird im Container neu gebaut)
+main
+recipe-service
+
+# Windows Metadaten
+*:Zone.Identifier
+
+# Docker Dateien selbst
+Dockerfile
+docker-compose.yml
+.dockerignore
