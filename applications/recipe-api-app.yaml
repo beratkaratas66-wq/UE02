@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: recipe-api-deployment
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'git@github.com:beratkaratas66-wq/SDX.git'
+    path: UE04_Helm/recipe-api
+    targetRevision: HEAD
+    helm:
+      valueFiles:
+        - values-dev.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
