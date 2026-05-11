@@ -1,0 +1,18 @@
+# Binaries (erstellte Programme)
+main
+recipe-service
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Windows Metadaten (sehr wichtig bei dir!)
+*:Zone.Identifier
+
+# IDEs
+.vscode/
+.idea/
+
+# Go spezifisch
+vendor/

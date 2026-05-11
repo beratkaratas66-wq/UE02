@@ -1,0 +1,30 @@
+replicaCount: 1
+image:
+  repository: vstadtmueller/recipe-api
+  pullPolicy: Always
+  tag: "latest"
+
+# API Konfiguration
+dbUser: "postgres"
+dbPassword: "devpassword123"
+dbName: "postgres"
+
+service:
+  type: NodePort
+  port: 80
+
+# Cloudpirates Datenbank Konfiguration
+postgres:
+  image:
+    tag: "15"
+  auth:
+    username: "postgres"
+    password: "devpassword123"
+    database: "postgres"
+
+ingress:
+  enabled: false
+
+resources: {}
+podSecurityContext: {}
+securityContext: {}

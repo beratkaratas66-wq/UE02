@@ -1,0 +1,53 @@
+replicaCount: 3
+image:
+  repository: vstadtmueller/recipe-api
+  pullPolicy: IfNotPresent
+  tag: "v1.0.0"
+
+dbUser: "admin"
+dbPassword: "REPLACE_IN_CI_CD_PIPELINE"
+
+postgresql:
+  auth:
+    postgresPassword: "REPLACE_IN_CI_CD_PIPELINE"
+    username: "admin"
+    password: "REPLACE_IN_CI_CD_PIPELINE"
+    database: "recipe"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: recipe.production.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: recipe-tls
+      hosts:
+        - recipe.production.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 3000
+  fsGroup: 2000
+
+securityContext:
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
